@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ thống Y tế Số Việt Nam</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4">
+  <div id="app" class="max-w-7xl mx-auto"></div>
+
+  <script>
+    const roles = {
+      'y-ta-tyt': {
+        name: 'Y tá Trạm Y tế Xã',
+        level: 1,
+        color: 'bg-green-100 text-green-800 border-green-300',
+        permissions: {
+          'tam-soat': { read: true, write: true, delete: false },
+          'vital-signs': { read: true, write: true, delete: false },
+          'telemedicine': { read: true, write: false, delete: false },
+          'benh-man-tinh': { read: true, write: true, delete: false },
+          'ho-so': { read: true, write: true, delete: false }
+        }
+      },
+      'bac-si-gia-dinh': {
+        name: 'Bác sĩ Gia đình',
+        level: 2,
+        color: 'bg-blue-100 text-blue-800 border-blue-300',
+        permissions: {
+          'tam-soat': { read: true, write: true, delete: true },
+          'vital-signs': { read: true, write: true, delete: true },
+          'telemedicine': { read: true, write: true, delete: false },
+          'benh-man-tinh': { read: true, write: true, delete: true },
+          'ho-so': { read: true, write: true, delete: true },
+          'ai-support': { read: true, write: false, delete: false }
+        }
+      },
+      'bac-si-chuyen-khoa': {
+        name: 'Bác sĩ Chuyên khoa',
+        level: 3,
+        color: 'bg-purple-100 text-purple-800 border-purple-300',
+        permissions: {
+          'tam-soat': { read: true, write: true, delete: true },
+          'vital-signs': { read: true, write: true, delete: true },
+          'telemedicine': { read: true, write: true, delete: true },
+          'benh-man-tinh': { read: true, write: true, delete: true },
+          'ho-so': { read: true, write: true, delete: true },
+          'ai-support': { read: true, write: true, delete: false },
+          'chan-doan-hinh-anh': { read: true, write: true, delete: false }
+        }
+      },
+      'bac-si-trung-uong': {
+        name: 'Bác sĩ BV Trung ương',
+        level: 5,
+        color: 'bg-red-100 text-red-800 border-red-300',
+        permissions: {
+          'tam-soat': { read: true, write: true, delete: true },
+          'vital-signs': { read: true, write: true, delete: true },
+          'telemedicine': { read: true, write: true, delete: true },
+          'benh-man-tinh': { read: true, write: true, delete: true },
+          'ho-so': { read: true, write: true, delete: true },
+          'ai-support': { read: true, write: true, delete: true },
+          'chan-doan-hinh-anh': { read: true, write: true, delete: true },
+          'precision-medicine': { read: true, write: true, delete: true },
+          'genomics': { read: true, write: true, delete: false }
+        }
+      }
+    };
+
+    const modules = {
+      'benh-nhan': {
+        name: 'Quản lý Bệnh nhân',
+        features: [
+          { id: 'ho-so', name: 'Hồ sơ bệnh án', requires: 'ho-so' },
+          { id: 'tam-soat', name: 'Tầm soát thông minh', requires: 'tam-soat' },
+          { id: 'vital-signs', name: 'Vital Signs', requires: 'vital-signs' },
+          { id: 'benh-man-tinh', name: 'Bệnh mạn tính', requires: 'benh-man-tinh' }
+        ]
+      },
+      'chan-doan': {
+        name: 'Chẩn đoán',
+        features: [
+          { id: 'chan-doan-hinh-anh', name: 'Chẩn đoán hình ảnh', requires: 'chan-doan-hinh-anh' },
+          { id: 'ai-support', name: 'AI hỗ trợ', requires: 'ai-support' }
+        ]
+      },
+      'telemedicine': {
+        name: 'Y tế từ xa',
+        features: [
+          { id: 'telemedicine', name: 'Tư vấn video', requires: 'telemedicine' }
+        ]
+      },
+      'chuyen-sau': {
+        name: 'Chuyên sâu',
+        features: [
+          { id: 'precision-medicine', name: 'Y học chính xác', requires: 'precision-medicine' },
+          { id: 'genomics', name: 'Genomics', requires: 'genomics' }
+        ]
+      }
+    };
+
+    let selectedRole = 'bac-si-gia-dinh';
+    let expandedSection = null;
+
+    function selectRole(roleKey) {
+      selectedRole = roleKey;
+      render();
+    }
+
+    function toggleSection(sectionKey) {
+      expandedSection = expandedSection === sectionKey ? null : sectionKey;
+      render();
+    }
+
+    function hasPermission(feature, action) {
+      const perm = roles[selectedRole].permissions[feature];
+      return perm && perm[action];
+    }
+
+    function render() {
+      const currentRole = roles[selectedRole];
+      const html = `
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">🏥 Hệ thống Y tế Số Việt Nam</h1>
+          <p class="text-gray-600">Quản lý phân quyền đa tuyến - Lấy người bệnh làm trung tâm</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h2 class="text-xl font-bold mb-4">Chọn vai trò</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${Object.entries(roles).map(([key, role]) => `
+              <button
+                onclick="selectRole('${key}')"
+                class="p-4 rounded-lg border-2 transition-all ${
+                  selectedRole === key
+                    ? role.color + ' border-current shadow-lg scale-105'
+                    : 'bg-white border-gray-200 hover:border-blue-300'
+                }"
+              >
+                <div class="font-semibold text-sm mb-1">${role.name}</div>
+                <div class="text-xs opacity-70">Tuyến ${role.level}</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="rounded-lg shadow-lg p-6 mb-6 border-2 ${currentRole.color}">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold">${currentRole.name}</h3>
+              <p class="text-sm opacity-80">Tuyến ${currentRole.level}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-bold">${Object.keys(currentRole.permissions).length}</div>
+              <div class="text-sm opacity-80">Module</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <h2 class="text-xl font-bold mb-6">Ma trận phân quyền</h2>
+          <div class="space-y-4">
+            ${Object.entries(modules).map(([moduleKey, module]) => {
+              const hasAnyFeature = module.features.some(f => currentRole.permissions[f.requires]);
+              const isExpanded = expandedSection === moduleKey;
+              
+              return `
+                <div class="border rounded-lg overflow-hidden">
+                  <button
+                    onclick="toggleSection('${moduleKey}')"
+                    class="w-full p-4 flex justify-between items-center ${
+                      hasAnyFeature ? 'bg-blue-50 hover:bg-blue-100' : 'bg-gray-50'
+                    }"
+                  >
+                    <span class="font-semibold">${module.name}</span>
+                    <span>${isExpanded ? '▼' : '▶'}</span>
+                  </button>
+
+                  ${isExpanded ? `
+                    <div class="p-4 bg-gray-50 border-t">
+                      ${module.features.map(feature => {
+                        const perm = currentRole.permissions[feature.requires];
+                        const hasAnyPerm = perm && (perm.read || perm.write || perm.delete);
+
+                        return `
+                          <div class="mb-3 p-4 rounded-lg border-2 ${
+                            hasAnyPerm ? 'bg-white border-blue-200' : 'bg-gray-100 border-gray-300'
+                          }">
+                            <div class="font-medium mb-2">${feature.name}</div>
+                            <div class="grid grid-cols-3 gap-2">
+                              <div class="p-2 rounded text-center ${
+                                hasPermission(feature.requires, 'read') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-400'
+                              }">
+                                ${hasPermission(feature.requires, 'read') ? '✓' : '✗'} Xem
+                              </div>
+                              <div class="p-2 rounded text-center ${
+                                hasPermission(feature.requires, 'write') ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-400'
+                              }">
+                                ${hasPermission(feature.requires, 'write') ? '✓' : '✗'} Sửa
+                              </div>
+                              <div class="p-2 rounded text-center ${
+                                hasPermission(feature.requires, 'delete') ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-400'
+                              }">
+                                ${hasPermission(feature.requires, 'delete') ? '✓' : '✗'} Xóa
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="mt-6 text-center text-sm text-gray-600 bg-white rounded-lg shadow p-4">
+          <p>🔒 Hệ thống tuân thủ ISO 27001, ISO 27799, Nghị định 13/2023</p>
+        </div>
+      `;
+
+      document.getElementById('app').innerHTML = html;
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
