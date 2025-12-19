@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient-centered approach - Smart Healthcare System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .sidebar-active { background-color: #e2e8f0; border-right: 4px solid #2563eb; color: #1e40af; font-weight: 700; }
+        .card-dark { background-color: #1e293b; color: #f8fafc; border: 1px solid #334155; }
+        .status-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        #sidebar { transition: transform 0.3s ease-in-out; z-index: 1000; }
+        @media (max-width: 1024px) {
+            #sidebar { transform: translateX(-100%); position: fixed; height: 100%; top: 0; left: 0; }
+            #sidebar.open { transform: translateX(0); }
+        }
+        .video-placeholder { background: #000; position: relative; overflow: hidden; border-radius: 1rem; border: 1px solid #334155; }
+        .remote-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+    </style>
+</head>
+<body class="overflow-hidden flex flex-col h-screen">
+
+    <header class="bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white p-3 md:p-4 shadow-xl flex justify-between items-center z-50">
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <button onclick="toggleSidebar()" class="lg:hidden p-2 text-white focus:outline-none hover:bg-white/10 rounded-lg">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <div class="bg-white p-1.5 md:p-2 rounded-lg text-blue-800 shadow-inner hidden sm:block">
+                <i class="fas fa-hospital-user text-xl md:text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-sm md:text-xl font-black tracking-tight uppercase leading-none italic">Patient-centered approach</h1>
+                <h2 class="text-[10px] md:text-xs mt-1 opacity-80 uppercase font-bold">@2025 BinhMinhAI</h2>
+             <h3 class="text-[10px] md:text-xs mt-1 opacity-80 uppercase font-bold">MVP Sample</h2>
+            
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-2 md:space-x-6">
+            <div class="hidden sm:block text-right">
+                <p class="text-xs md:text-sm font-bold italic">ĐD. Nguyễn Thị A</p>
+                <p class="text-[9px] text-blue-200 uppercase">Trạm YT: Gia Định, TP.HCM</p>
+            </div>
+            <div id="connection-status" class="bg-green-500/20 px-2 md:px-3 py-1 rounded-full border border-green-400 flex items-center space-x-1 md:space-x-2">
+                <span class="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-ping"></span>
+                <span class="font-bold text-[8px] md:text-xs uppercase">Connected</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <div id="overlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/50 z-[999] lg:hidden"></div>
+
+        <aside id="sidebar" class="w-64 lg:w-72 bg-white border-r border-slate-200 shadow-2xl lg:shadow-none overflow-y-auto shrink-0">
+            <nav class="p-4 space-y-1">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2">Quản lý cơ sở (TYT)</div>
+                <button onclick="go('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 text-left">
+                    <i class="fas fa-th-large w-5 text-center"></i><span>Dashboard Trạm Y tế</span>
+                </button>
+                <button onclick="go('patients')" id="nav-patients" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 text-left">
+                    <i class="fas fa-users w-5 text-center"></i><span>Danh sách Bệnh nhân</span>
+                </button>
+                <button onclick="go('vitals')" id="nav-vitals" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 text-left">
+                    <i class="fas fa-heartbeat w-5 text-center"></i><span>Chỉ số sinh tồn (IoT)</span>
+                </button>
+                <button onclick="go('telemedicine')" id="nav-telemedicine" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 text-left">
+                    <i class="fas fa-video w-5 text-center"></i><span>Tư vấn từ xa</span>
+                </button>
+
+                <div class="pt-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest px-4 mb-2 font-bold italic">Trung tâm điều hành AI</div>
+                <button onclick="go('aiflow')" id="nav-aiflow" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-left">
+                    <i class="fas fa-robot w-5 text-center"></i><span class="font-bold uppercase italic">AI Center Management</span>
+                </button>
+            </nav>
+
+            <div class="mt-10 p-4 mx-4 bg-slate-100 rounded-2xl border border-slate-200 mb-6">
+                <div class="flex items-center space-x-2 text-slate-600 mb-2 font-bold text-[10px] uppercase">
+                    <i class="fas fa-shield-alt"></i><span>An toàn dữ liệu</span>
+                </div>
+                <ul class="text-[9px] text-slate-500 space-y-1">
+                    <li>● HIPAA & NĐ 13/2023 Compliance</li>
+                    <li>● Mã hóa E2EE & FHIR Standards</li>
+                </ul>
+            </div>
+        </aside>
+
+        <main id="app" class="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 relative"></main>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 p-2 px-6 flex justify-between items-center text-[10px] text-slate-500 z-50">
+        <div>Hệ thống tuân thủ tiêu chuẩn an toàn thông tin Bộ Y tế VN</div>
+        <div class="flex space-x-4">
+            <span class="hidden sm:inline italic">Dữ liệu mã hóa định danh (E2EE)</span>
+            <span id="current-time-footer"></span>
+        </div>
+    </footer>
+
+    <script>
+        // -- DATA & STATE --
+        var view = 'dashboard';
+        var selectedId = null;
+        var patients = [
+            { id: 'P001', name: 'Nguyễn Văn An', age: 65, gender: 'Nam', insurance: 'DN4567890123', risk: 'high', conditions: ['Cao huyết áp', 'Đái tháo đường'] },
+            { id: 'P002', name: 'Trần Thị Bích', age: 45, gender: 'Nữ', insurance: 'HN1234567890', risk: 'medium', conditions: ['Cao huyết áp'] },
+            { id: 'P003', name: 'Phạm Thị Diệu', age: 28, gender: 'Nữ', insurance: 'HN5555666777', risk: 'low', conditions: [], pregnant: true }
+        ];
+        var vitalsData = []; // Lưu trữ lịch sử đo
+
+        // -- ROUTER & NAVIGATION --
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('hidden');
+        }
+
+        function go(v, id) {
+            view = v;
+            if (id) selectedId = id;
+            if (window.innerWidth < 1024) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('overlay').classList.add('hidden');
+            }
+            render();
+            if (v === 'aiflow') setTimeout(initAICharts, 100);
+        }
+
+        // -- IOT VITALS LOGIC --
+        function addVital() {
+            if (!selectedId) { alert('Vui lòng chọn bệnh nhân trong danh sách trước!'); return; }
+            const newEntry = {
+                pid: selectedId,
+                time: new Date().toLocaleTimeString('vi-VN'),
+                bp: (110 + Math.floor(Math.random() * 40)) + '/' + (70 + Math.floor(Math.random() * 20)),
+                hr: 65 + Math.floor(Math.random() * 30),
+                spo2: 96 + Math.floor(Math.random() * 4),
+                temp: (36.4 + Math.random() * 1.2).toFixed(1)
+            };
+            vitalsData.unshift(newEntry);
+            render(); // Cập nhật ngay giao diện
+        }
+
+        // -- RENDER ENGINE --
+        function render() {
+            const btns = document.querySelectorAll('.nav-btn');
+            btns.forEach(b => b.classList.remove('sidebar-active'));
+            const activeId = 'nav-' + (view === 'detail' ? 'patients' : (view === 'tele-session' ? 'telemedicine' : view));
+            if (document.getElementById(activeId)) document.getElementById(activeId).classList.add('sidebar-active');
+
+            const app = document.getElementById('app');
+            app.innerHTML = getContent();
+        }
+
+        function getContent() {
+            // VIEW: DASHBOARD
+            if (view === 'dashboard') {
+                const highRisk = patients.filter(p => p.risk === 'high').length;
+                return `
+                    <div class="space-y-6">
+                        <div class="bg-blue-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+                            <h2 class="text-3xl font-black mb-2 italic tracking-tight italic underline decoration-white/30">Patient-centered approach</h2>
+                            <p class="text-blue-100 text-sm max-w-xl">Hệ thống quản lý y tế cơ sở thông minh tích hợp AI điều phối và IoT sinh tồn chuẩn FHIR R4.</p>
+                            <i class="fas fa-heart-pulse absolute -bottom-10 -right-10 text-[15rem] text-white/10 italic"></i>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                <p class="text-slate-400 text-[10px] font-bold uppercase mb-1">Tổng Bệnh Nhân</p>
+                                <div class="text-4xl font-black text-blue-600">${patients.length}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                <p class="text-slate-400 text-[10px] font-bold uppercase mb-1">Nguy Cơ Cao</p>
+                                <div class="text-4xl font-black text-red-500">${highRisk}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                <p class="text-slate-400 text-[10px] font-bold uppercase mb-1">Kết nối IoT</p>
+                                <div class="text-4xl font-black text-indigo-600">${vitalsData.length}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center">
+                                <span class="w-3 h-3 bg-green-500 rounded-full mr-3 status-pulse"></span>
+                                <span class="text-xl font-black text-green-500">HIE ONLINE</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            // VIEW: PATIENT LIST
+            if (view === 'patients') {
+                const rows = patients.map(p => `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td class="p-4 text-xs font-mono text-slate-400">${p.id}</td>
+                        <td class="p-4 font-bold text-slate-700">${p.name}</td>
+                        <td class="p-4 text-sm">${p.age} - ${p.gender}</td>
+                        <td class="p-4"><span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${p.risk === 'high' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">${p.risk.toUpperCase()}</span></td>
+                        <td class="p-4"><button onclick="go('detail', '${p.id}')" class="text-blue-600 font-black hover:underline text-xs italic">CHI TIẾT HỒ SƠ</button></td>
+                    </tr>`).join('');
+                return `
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-6 border-b flex justify-between items-center bg-slate-50">
+                            <h2 class="text-xl font-black italic tracking-tighter uppercase underline decoration-blue-500/30">Hồ sơ bệnh nhân (FHIR)</h2>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-200">+ THÊM MỚI</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="w-full text-left min-w-[600px]">
+                                <thead class="bg-slate-50 text-[10px] text-slate-400 uppercase font-black">
+                                    <tr><th class="p-4">Resource ID</th><th class="p-4">Name</th><th class="p-4">Bio</th><th class="p-4">Risk Level</th><th class="p-4">Action</th></tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            }
+
+            // VIEW: DETAIL
+            if (view === 'detail') {
+                const p = patients.find(p => p.id === selectedId);
+                if (!p) return `<div class="p-8 text-center text-slate-400">Không tìm thấy bệnh nhân. <button onclick="go('patients')" class="text-blue-600">Quay lại</button></div>`;
+                return `
+                    <div class="space-y-6">
+                        <button onclick="go('patients')" class="text-blue-600 font-bold text-sm italic hover:underline">← Quay lại danh sách</button>
+                        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                            <div class="flex flex-col md:flex-row justify-between gap-6">
+                                <div class="space-y-2">
+                                    <h2 class="text-3xl font-black text-slate-800 italic underline decoration-blue-500/30">${p.name}</h2>
+                                    <p class="text-slate-400 text-xs italic">ID: ${p.id} • ${p.age} Tuổi • ${p.gender}</p>
+                                    <p class="text-slate-400 text-xs">BHYT: ${p.insurance}</p>
+                                </div>
+                                <div class="flex gap-4 h-fit">
+                                    <button onclick="go('vitals', '${p.id}')" class="px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:scale-105 transition-transform">Đo IoT Vitals</button>
+                                    <button onclick="go('telemedicine', '${p.id}')" class="px-6 py-3 bg-purple-600 text-white rounded-2xl font-bold shadow-lg shadow-purple-200 hover:scale-105 transition-transform">Telehealth</button>
+                                </div>
+                            </div>
+                            <div class="mt-8 p-4 bg-slate-50 rounded-2xl">
+                                <h4 class="text-[10px] font-black text-slate-400 uppercase mb-3 italic">Tình trạng bệnh lý (ICD-10)</h4>
+                                <div class="flex flex-wrap gap-2">${p.conditions.map(c => `<span class="bg-blue-100 text-blue-700 text-[10px] px-3 py-1 rounded-full font-bold uppercase">${c}</span>`).join('') || '<span class="italic text-slate-400">Chưa ghi nhận bệnh nền</span>'}</div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            // VIEW: VITALS
+            if (view === 'vitals') {
+                if (!selectedId) return `<div class="p-12 text-center bg-white rounded-3xl border border-dashed border-slate-300"><p class="text-slate-400 italic mb-4">Vui lòng chọn bệnh nhân để thực hiện đo chỉ số sinh tồn IoT.</p><button onclick="go('patients')" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold">Danh sách bệnh nhân</button></div>`;
+                const p = patients.find(p => p.id === selectedId);
+                const pVitals = vitalsData.filter(v => v.pid === selectedId);
+                const latest = pVitals[0] || { bp: '--/--', hr: '--', spo2: '--', temp: '--' };
+                const rows = pVitals.map(v => `<tr class="border-b text-xs"><td class="p-3 text-slate-400">${v.time}</td><td class="p-3 text-center font-bold text-red-500">${v.bp}</td><td class="p-3 text-center font-bold text-blue-500">${v.spo2}%</td><td class="p-3 text-center text-pink-500">${v.hr}</td></tr>`).join('');
+                
+                return `
+                    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 space-y-8">
+                        <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                            <div>
+                                <h2 class="text-2xl font-black uppercase italic underline decoration-blue-500 decoration-4 tracking-tighter italic">IoT Vital Signs: ${p.name}</h2>
+                                <p class="text-xs text-slate-400 italic mt-1">Dữ liệu thời gian thực từ trạm đo thông minh</p>
+                            </div>
+                            <button onclick="addVital()" class="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all uppercase tracking-tight">Thực hiện đo mới</button>
+                        </div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="p-6 bg-red-50 border border-red-100 rounded-3xl"><p class="text-[10px] font-bold text-red-400 uppercase mb-1">Huyết áp</p><div class="text-2xl font-black text-red-600">${latest.bp}</div></div>
+                            <div class="p-6 bg-blue-50 border border-blue-100 rounded-3xl"><p class="text-[10px] font-bold text-blue-400 uppercase mb-1">SpO2</p><div class="text-2xl font-black text-blue-600">${latest.spo2}%</div></div>
+                            <div class="p-6 bg-pink-50 border border-pink-100 rounded-3xl"><p class="text-[10px] font-bold text-pink-400 uppercase mb-1">Nhịp tim</p><div class="text-2xl font-black text-pink-600">${latest.hr}</div></div>
+                            <div class="p-6 bg-orange-50 border border-orange-100 rounded-3xl"><p class="text-[10px] font-bold text-orange-400 uppercase mb-1">Nhiệt độ</p><div class="text-2xl font-black text-orange-500">${latest.temp}°C</div></div>
+                        </div>
+                        <div class="mt-10 overflow-hidden rounded-2xl border border-slate-100">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 text-[10px] uppercase font-black text-slate-400 italic">
+                                    <tr><th class="p-3">Thời gian</th><th class="p-3 text-center">BP</th><th class="p-3 text-center">SpO2</th><th class="p-3 text-center">HR</th></tr>
+                                </thead>
+                                <tbody>${rows || '<tr><td colspan="4" class="p-8 text-center text-slate-300 italic">Chưa có lịch sử đo cho bệnh nhân này</td></tr>'}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            }
+
+            // VIEW: TELEMEDICINE (SELECTION)
+            if (view === 'telemedicine') {
+                return `
+                    <div class="p-6 md:p-8 bg-white rounded-3xl shadow-sm border border-slate-200">
+                        <h2 class="text-2xl font-black italic underline decoration-purple-500 decoration-4 mb-8 uppercase italic italic">Secure Telehealth</h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                            <div class="p-8 border-2 border-blue-50 border-dashed rounded-3xl text-center hover:bg-blue-50 transition-all cursor-pointer group" onclick="go('tele-session')">
+                                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-hospital text-2xl"></i></div>
+                                <h3 class="font-bold text-lg mb-4 italic uppercase">Kết nối Tuyến trên</h3>
+                                <button class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 uppercase text-xs">KẾT NỐI NGAY</button>
+                            </div>
+                            <div class="p-8 border-2 border-purple-50 border-dashed rounded-3xl text-center hover:bg-purple-50 transition-all cursor-pointer group" onclick="go('tele-session')">
+                                <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-video text-2xl"></i></div>
+                                <h3 class="font-bold text-lg mb-4 italic uppercase">Video Consultation</h3>
+                                <button class="w-full py-3 bg-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-200 uppercase text-xs">BẮT ĐẦU PHIÊN HỌP</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            // VIEW: TELE-SESSION (VIDEO LAYOUT)
+            if (view === 'tele-session') {
+                const p = patients.find(pat => pat.id === (selectedId || 'P001'));
+                const pVitals = vitalsData.filter(v => v.pid === p.id);
+                const latest = pVitals[0] || { bp: '120/80', hr: '75', spo2: '98', temp: '36.6' };
+                
+                return `
+                <div class="h-full flex flex-col space-y-4">
+                    <div class="bg-slate-800 text-white p-4 rounded-2xl flex justify-between items-center shadow-lg">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                <span class="text-[10px] font-black uppercase tracking-widest italic">Live Consultation Session</span>
+                            </div>
+                            <h3 class="font-bold text-sky-400">BN: ${p.name}</h3>
+                        </div>
+                        <button onclick="go('telemedicine')" class="bg-red-600/20 text-red-400 border border-red-500/50 px-4 py-1 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white transition-colors">NGẮT KẾT NỐI</button>
+                    </div>
+
+                    <div class="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <div class="lg:col-span-3 video-placeholder border-2 border-sky-500/30">
+                            <img src="https://images.unsplash.com/photo-1579154235602-3c2c2aa59220?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover opacity-60">
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="text-center text-sky-400/50">
+                                    <i class="fas fa-microscope text-6xl mb-4"></i>
+                                    <p class="text-xs font-bold italic uppercase tracking-widest">Medical Diagnostic Device Feed</p>
+                                </div>
+                            </div>
+                            <div class="absolute top-4 left-4 bg-sky-500 text-white px-2 py-1 rounded text-[10px] font-black uppercase italic tracking-widest shadow-lg">Tín hiệu cận cảnh từ Tuyến Dưới</div>
+                            <div class="absolute bottom-4 right-4 bg-black/60 p-2 rounded-lg flex items-center space-x-3 text-[10px] font-bold text-white border border-white/20">
+                                <i class="fas fa-cog animate-spin"></i><span>Auto-Focus: On</span><span>Res: 4K (Ultra-HD)</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col space-y-4">
+                            <div class="video-placeholder aspect-video lg:h-36">
+                                <img src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=400&q=80" class="w-full h-full object-cover">
+                                <div class="remote-label uppercase tracking-tighter italic italic">Bác sĩ Tuyến trên (Hội chẩn)</div>
+                            </div>
+                            <div class="video-placeholder aspect-video lg:h-36">
+                                <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80" class="w-full h-full object-cover">
+                                <div class="remote-label uppercase tracking-tighter italic italic">Bác sĩ/ĐD Tuyến dưới (Tại chỗ)</div>
+                            </div>
+                            <div class="flex-1 bg-white rounded-2xl p-4 border border-slate-200 overflow-y-auto">
+                                <h4 class="text-[10px] font-black uppercase text-slate-400 mb-4 italic tracking-widest italic">Chỉ số sinh tồn Realtime</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="p-2 bg-red-50 rounded-lg text-center"><p class="text-[8px] font-bold text-red-400 mb-1">BP</p><div class="text-xs font-black text-red-600">${latest.bp}</div></div>
+                                    <div class="p-2 bg-blue-50 rounded-lg text-center"><p class="text-[8px] font-bold text-blue-400 mb-1">SpO2</p><div class="text-xs font-black text-blue-600">${latest.spo2}%</div></div>
+                                    <div class="p-2 bg-pink-50 rounded-lg text-center"><p class="text-[8px] font-bold text-pink-400 mb-1">HR</p><div class="text-xs font-black text-pink-600">${latest.hr}</div></div>
+                                    <div class="p-2 bg-orange-50 rounded-lg text-center"><p class="text-[8px] font-bold text-orange-400 mb-1">TEMP</p><div class="text-xs font-black text-orange-600">${latest.temp}°C</div></div>
+                                </div>
+                                <div class="mt-4 p-2 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                                    <p class="text-[8px] font-bold text-slate-400 mb-1 italic">Note cho Tuyến Trên:</p>
+                                    <p class="text-[9px] text-slate-600 leading-tight">Bệnh nhân đau tức ngực trái 30p, chỉ số BP dao động mạnh...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            // VIEW: AI FLOW
+            if (view === 'aiflow') {
+                return `
+                    <div class="bg-[#0f172a] min-h-full text-slate-200 rounded-3xl p-6 md:p-8 space-y-8 overflow-y-auto">
+                        <div class="flex flex-col md:flex-row justify-between gap-6">
+                            <div>
+                                <h2 class="text-3xl font-black text-sky-400 italic tracking-tighter uppercase italic italic underline decoration-sky-500/20">AI Center - Realtime Management</h2>
+                                <p class="text-slate-500 text-xs italic mt-1">Phân tích mật độ và dự báo quá tải khoa phòng dựa trên hành vi bệnh nhân</p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-sky-900/40 border border-sky-500/50 px-4 py-2 rounded-2xl flex items-center space-x-3">
+                                    <i class="fas fa-robot text-sky-400"></i>
+                                    <span class="text-[10px] font-bold text-sky-400 uppercase tracking-widest">AI Flow Predictive: Active</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div class="card-dark p-6 rounded-3xl border-l-4 border-sky-500">
+                                <p class="text-slate-500 text-[10px] uppercase font-bold mb-1 italic tracking-widest">Thời gian chờ TB</p>
+                                <div class="text-3xl font-black text-sky-400">18 Phút</div>
+                                <p class="text-[9px] text-green-500 font-bold mt-2 italic">✓ Giảm 15% so với giờ trước</p>
+                            </div>
+                            <div class="card-dark p-6 rounded-3xl border-l-4 border-red-500">
+                                <p class="text-slate-500 text-[10px] uppercase font-bold mb-1 italic tracking-widest">Điểm Nóng Tắc Nghẽn</p>
+                                <div class="text-3xl font-black text-red-500">02 Khu Vực</div>
+                                <p class="text-[9px] text-red-400 font-bold mt-2 italic">⚠️ X-Quang & Siêu Âm</p>
+                            </div>
+                            <div class="card-dark p-6 rounded-3xl border-l-4 border-indigo-500">
+                                <p class="text-slate-500 text-[10px] uppercase font-bold mb-1 italic tracking-widest">Tỉ Lệ Tự Check-in</p>
+                                <div class="text-3xl font-black text-indigo-400">78%</div>
+                                <p class="text-[9px] text-slate-500 font-bold mt-2 italic">Dữ liệu từ Smart Kiosk</p>
+                            </div>
+                            <div class="card-dark p-6 rounded-3xl border-l-4 border-yellow-500">
+                                <p class="text-slate-500 text-[10px] uppercase font-bold mb-1 italic tracking-widest">Chỉ số hài lòng (CSAT)</p>
+                                <div class="text-3xl font-black text-yellow-400">4.8/5.0</div>
+                                <p class="text-[9px] text-yellow-500/50 font-bold mt-2 italic">Realtime Feedback Loop</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="card-dark p-8 rounded-3xl lg:col-span-2 border border-slate-800 shadow-2xl">
+                                <div class="flex justify-between items-center mb-8">
+                                    <h3 class="font-black italic text-sky-400 uppercase text-sm tracking-tight italic italic italic">Phân tích mật độ (Heatmap AI)</h3>
+                                    <div class="flex space-x-2">
+                                        <span class="px-2 py-1 bg-red-500/20 text-red-400 text-[8px] font-bold rounded">High Traffic</span>
+                                        <span class="px-2 py-1 bg-green-500/20 text-green-400 text-[8px] font-bold rounded">Optimal</span>
+                                    </div>
+                                </div>
+                                <div class="relative bg-slate-900/60 rounded-3xl h-80 flex items-center justify-center border border-dashed border-slate-700">
+                                    <div class="text-center text-slate-700">
+                                        <i class="fas fa-map-marked-alt text-6xl mb-4"></i>
+                                        <p class="text-[10px] font-bold uppercase tracking-widest">Hospital Indoor Navigation Feed</p>
+                                    </div>
+                                    <div class="absolute top-1/4 left-1/3 w-20 h-20 bg-red-500/20 rounded-full blur-3xl animate-pulse"></div>
+                                    <div class="absolute bottom-1/3 right-1/4 w-24 h-24 bg-yellow-500/10 rounded-full blur-3xl"></div>
+                                </div>
+                            </div>
+                            <div class="card-dark p-8 rounded-3xl border border-slate-800">
+                                <h3 class="font-black italic text-sky-400 mb-8 uppercase text-sm italic tracking-tight italic"><i class="fas fa-brain mr-2"></i>AI Action Engine</h3>
+                                <div class="space-y-4">
+                                    <div class="p-4 bg-red-500/10 border-l-2 border-red-500 rounded-xl">
+                                        <p class="text-[10px] text-red-400 font-bold uppercase italic tracking-widest mb-1">Cảnh báo tức thời</p>
+                                        <p class="text-xs text-slate-300">Khu X-Quang tầng 2 đang dồn 25 BN. Thời gian chờ dự kiến: 55p.</p>
+                                        <p class="text-[10px] text-slate-500 font-bold italic mt-2 italic">💡 Đề xuất: Điều hướng BN sang khu B tầng 3</p>
+                                    </div>
+                                    <div class="p-4 bg-blue-500/10 border-l-2 border-blue-500 rounded-xl">
+                                        <p class="text-[10px] text-blue-400 font-bold uppercase italic tracking-widest mb-1">Dự báo nhu cầu</p>
+                                        <p class="text-xs text-slate-300">Lưu lượng BN Nhi khoa sẽ tăng 20% trong 1h tới dựa trên dữ liệu lịch sử.</p>
+                                    </div>
+                                    <div class="p-4 bg-green-500/10 border-l-2 border-green-500 rounded-xl">
+                                        <p class="text-[10px] text-green-400 font-bold uppercase italic tracking-widest mb-1">Tối ưu hạ tầng</p>
+                                        <p class="text-xs text-slate-300">Tự động kích hoạt Kiosk số 08 tại Sảnh phụ để giảm tải check-in.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="card-dark p-8 rounded-3xl border border-slate-800">
+                                <h3 class="text-[10px] font-black text-slate-500 mb-6 uppercase italic italic tracking-widest">Dự báo biến động thời gian chờ (24h)</h3>
+                                <div class="h-60"><canvas id="waitTrendChart"></canvas></div>
+                            </div>
+                            <div class="card-dark p-8 rounded-3xl border border-slate-800">
+                                <h3 class="text-[10px] font-black text-slate-500 mb-6 uppercase italic italic tracking-widest">Tải công suất các phòng chức năng (%)</h3>
+                                <div class="h-60"><canvas id="deptChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            return `<div class="p-12 text-center text-slate-400 animate-pulse italic">Đang đồng bộ dữ liệu từ FHIR Server...</div>`;
+        }
+
+        // -- CHART INITIALIZATION --
+        function initAICharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { grid: { color: '#334155', borderDash: [2, 2] }, ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } } }, 
+                    x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10, weight: 'bold' } } } 
+                }
+            };
+
+            const ctx1 = document.getElementById('waitTrendChart');
+            if (ctx1) {
+                new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['07h', '09h', '11h', '13h', '15h', '17h'],
+                        datasets: [{ 
+                            data: [12, 35, 48, 20, 32, 10], 
+                            borderColor: '#38bdf8', 
+                            borderWidth: 3,
+                            pointBackgroundColor: '#38bdf8',
+                            tension: 0.4, 
+                            fill: true, 
+                            backgroundColor: 'rgba(56, 189, 248, 0.05)' 
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+
+            const ctx2 = document.getElementById('deptChart');
+            if (ctx2) {
+                new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Nội', 'Nhi', 'Ngoại', 'X-Quang', 'Siêu âm'],
+                        datasets: [{ 
+                            data: [85, 92, 45, 98, 88], 
+                            backgroundColor: ['#38bdf8', '#ef4444', '#10b981', '#f59e0b', '#38bdf8'], 
+                            borderRadius: 8,
+                            barThickness: 20
+                        }]
+                    },
+                    options: chartOptions
+                });
+            }
+        }
+
+        // -- CLOCK --
+        setInterval(() => {
+            const now = new Date();
+            if (document.getElementById('current-time-footer')) {
+                document.getElementById('current-time-footer').innerText = 'Dữ liệu chuẩn hóa: ' + now.toLocaleTimeString('vi-VN');
+            }
+        }, 1000);
+
+        // INITIAL LOAD
+        render();
+    </script>
+</body>
+</html>
