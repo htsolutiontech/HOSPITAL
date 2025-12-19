@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health VietNam</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root { --sky-primary: #0ea5e9; --slate-dark: #0f172a; }
+    body { background-color: var(--slate-dark); color: #f1f5f9; font-family: 'Inter', sans-serif; overflow: hidden; }
+    .scroll-custom::-webkit-scrollbar { width: 4px; }
+    .scroll-custom::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+    .status-pulse { animation: pulse-green 2s infinite; }
+    @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+    .phone-view { width: 320px; height: 600px; border: 10px solid #1e293b; border-radius: 40px; background: white; margin: 0 auto; overflow: hidden; position: relative; }
+    .locked-blur { backdrop-filter: blur(10px); background: rgba(15, 23, 42, 0.85); }
+  </style>
+</head>
+<body>
+
+  <header class="h-16 glass border-b border-white/5 flex justify-between items-center px-6 sticky top-0 z-50">
+    <div class="flex items-center space-x-3">
+      <i class="fas fa-microchip text-sky-400 text-2xl"></i>
+      <h1 class="font-black text-lg tracking-tighter uppercase">Health <span class="text-sky-400">VietNam</span></h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <div id="violation-toast" class="hidden text-[10px] bg-red-500/20 text-red-400 px-3 py-1 rounded-full border border-red-500/50 font-bold animate-pulse">
+        <i class="fas fa-shield-virus mr-1"></i> VI PHẠM TRUY CẬP: ĐÃ BÁO ZALO
+      </div>
+      <div class="text-[10px] bg-green-500/20 text-green-400 px-3 py-1 rounded-full border border-green-500/50 status-pulse">
+        <i class="fas fa-cloud-upload-alt mr-1"></i> AUTO-SCALING ACTIVE
+      </div>
+    </div>
+  </header>
+
+  <div class="flex h-[calc(100vh-64px)]">
+    <aside class="w-64 bg-slate-900/50 border-r border-white/5 p-4 flex flex-col space-y-2 shadow-2xl">
+      <p class="text-[9px] font-bold text-slate-500 uppercase px-4 mb-2 tracking-widest">Hệ thống Đa tuyến</p>
+      <button onclick="switchView('dashboard')" class="nav-btn w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 text-xs transition-all">
+        <i class="fas fa-chart-pie w-5"></i><span>Điều hành Tổng thể</span>
+      </button>
+      <button onclick="switchView('security-ai')" class="nav-btn w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 text-xs transition-all text-orange-400">
+        <i class="fas fa-radar w-5"></i><span>AI Risk & Infra</span>
+      </button>
+      <button onclick="switchView('clinical')" class="nav-btn w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 text-xs transition-all">
+        <i class="fas fa-stethoscope w-5"></i><span>Khám & AI Audit</span>
+      </button>
+      <button onclick="switchView('patient-app')" class="nav-btn w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 text-xs transition-all">
+        <i class="fas fa-mobile-alt w-5"></i><span>Cổng Người bệnh</span>
+      </button>
+      <button onclick="switchView('migration')" class="nav-btn w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5 text-xs transition-all text-sky-400">
+        <i class="fas fa-exchange-alt w-5"></i><span>Chuyển đổi (Migration)</span>
+      </button>
+      
+      <div class="mt-auto p-4 glass rounded-2xl border border-sky-500/20">
+        <p class="text-[8px] font-bold text-sky-400 uppercase mb-2">Chứng chỉ An ninh</p>
+        <div class="flex flex-wrap gap-1">
+          <span class="text-[7px] bg-white/5 px-1 rounded">ISO 27001</span>
+          <span class="text-[7px] bg-white/5 px-1 rounded">HL7 FHIR R4</span>
+          <span class="text-[7px] bg-white/5 px-1 rounded">Decree 13</span>
+        </div>
+      </div>
+    </aside>
+
+    <main id="view-container" class="flex-1 p-8 overflow-y-auto scroll-custom">
+      </main>
+  </div>
+
+  <div id="mfa-modal" class="hidden fixed inset-0 bg-slate-950/95 z-[100] flex items-center justify-center backdrop-blur-xl">
+    <div class="bg-slate-900 border border-sky-500/30 p-8 rounded-[3rem] max-w-sm w-full shadow-2xl text-center">
+      <div class="w-20 h-20 bg-sky-500/10 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-6"><i class="fab fa-whatsapp text-4xl"></i></div>
+      <h3 class="text-xl font-bold mb-2 uppercase italic">Xác thực Zalo OTP</h3>
+      <p class="text-[10px] text-slate-400 mb-6 leading-relaxed">Bạn đang truy cập dữ liệu nhạy cảm (ECG/CGM). Mã OTP đã được gửi đến BS. Mai.</p>
+      <input type="text" id="otp-input" placeholder="●●●●●●" class="w-full bg-black/50 border border-white/10 rounded-2xl p-4 text-center text-3xl font-black tracking-[1rem] outline-none focus:border-sky-500 text-white mb-6">
+      <button onclick="verifyMFA()" class="w-full bg-sky-600 py-4 rounded-2xl font-black text-xs uppercase shadow-xl">Xác nhận Truy cập</button>
+    </div>
+  </div>
+
+  <script>
+    let activeView = 'dashboard';
+    const permissions = { ecg_unlocked: false };
+
+    function switchView(v) { activeView = v; render(); }
+
+    function render() {
+      const main = document.getElementById('view-container');
+      
+      if (activeView === 'dashboard') {
+        main.innerHTML = `
+          <div class="space-y-8">
+            <h2 class="text-2xl font-black italic border-l-4 border-sky-500 pl-4 uppercase">Điều hành Tổng thể (Pilot Hub)</h2>
+            <div class="grid grid-cols-4 gap-6">
+              <div class="glass p-6 rounded-3xl border-l-4 border-red-500"><p class="text-[10px] font-bold text-slate-500 uppercase">Tỷ lệ Chuyển tuyến</p><p class="text-4xl font-black text-red-500">22%</p></div>
+              <div class="glass p-6 rounded-3xl border-l-4 border-sky-500"><p class="text-[10px] font-bold text-slate-500 uppercase">Điểm AI Audit</p><p class="text-4xl font-black text-sky-500">92/100</p></div>
+              <div class="glass p-6 rounded-3xl border-l-4 border-green-500"><p class="text-[10px] font-bold text-slate-500 uppercase">Hài lòng BN</p><p class="text-4xl font-black text-green-500">4.9/5</p></div>
+              <div class="glass p-6 rounded-3xl border-l-4 border-orange-500"><p class="text-[10px] font-bold text-slate-500 uppercase">Container Node</p><p class="text-4xl font-black text-orange-500">142</p></div>
+            </div>
+            <div class="grid grid-cols-2 gap-8">
+              <div class="glass p-8 rounded-[2.5rem]"><h4 class="text-xs font-bold uppercase mb-6 text-slate-500">Auto-scaling & Requests/s</h4><canvas id="scalingChart"></canvas></div>
+              <div class="glass p-8 rounded-[2.5rem]"><h4 class="text-xs font-bold uppercase mb-6 text-slate-500">Hội chẩn ảo (Real-time Stream)</h4><canvas id="liveStreamChart"></canvas></div>
+            </div>
+          </div>
+        `;
+        initDashboardCharts();
+      }
+
+      else if (activeView === 'security-ai') {
+        main.innerHTML = `
+          <div class="space-y-6">
+            <h2 class="text-2xl font-black italic border-l-4 border-orange-500 pl-4 uppercase text-orange-400">AI Risk Assessment (Predictive Security)</h2>
+            <div class="grid grid-cols-12 gap-8">
+              <div class="col-span-7 glass p-8 rounded-[3rem] border border-orange-500/10">
+                <h4 class="text-xs font-bold uppercase mb-6 text-slate-500 italic">Ma trận rủi ro hệ thống</h4>
+                <canvas id="riskRadar"></canvas>
+              </div>
+              <div class="col-span-5 space-y-6">
+                <div class="p-6 bg-red-500/10 border border-red-500/30 rounded-[2.5rem]">
+                  <p class="text-xs font-bold text-red-400 flex items-center uppercase"><i class="fas fa-biohazard mr-2"></i> Anomaly Detected</p>
+                  <p class="text-[10px] text-slate-400 mt-2 italic">Phát hiện hành vi truy cập dữ liệu ECG ngoài phạm vi chuyên khoa (User: Dr_Tuan). MFA đã bị can thiệp.</p>
+                  <button class="mt-4 w-full py-2 bg-red-600 rounded-xl text-[10px] font-bold uppercase shadow-lg">Khóa IP Truy cập</button>
+                </div>
+                <div class="p-6 glass rounded-[2.5rem] text-center">
+                  <p class="text-[10px] font-bold text-slate-500 uppercase">Chỉ số An ninh SSI</p>
+                  <p class="text-6xl font-black text-sky-400 italic tracking-tighter">88/100</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        initRiskChart();
+      }
+
+      else if (activeView === 'clinical') {
+        main.innerHTML = `
+          <div class="grid grid-cols-12 gap-8 h-full">
+            <div class="col-span-8 glass p-8 rounded-[3rem] relative">
+              <div class="flex justify-between items-center mb-8 border-b border-white/5 pb-6">
+                <h2 class="text-2xl font-black uppercase tracking-tighter italic">BN: TRẦN VĂN B (55T)</h2>
+                <div class="bg-green-500/10 text-green-400 px-4 py-1 rounded-full text-[10px] font-bold border border-green-500/20">AI AUDIT: 98/100</div>
+              </div>
+              <div class="grid grid-cols-3 gap-6 mb-8 text-center">
+                <div class="p-4 bg-black/30 rounded-3xl border border-white/5"><p class="text-[9px] text-slate-500 font-bold uppercase">Huyết áp</p><p class="text-3xl font-black text-red-500">155/92</p></div>
+                <div class="p-4 bg-black/30 rounded-3xl border border-white/5"><p class="text-[9px] text-slate-500 font-bold uppercase">Nhịp tim</p><p class="text-3xl font-black">88</p></div>
+                <div class="p-4 bg-black/30 rounded-3xl border border-white/5"><p class="text-[9px] text-slate-500 font-bold uppercase">Glucose</p><p class="text-3xl font-black text-sky-500">105</p></div>
+              </div>
+              <div class="bg-black h-48 rounded-3xl border border-white/5 relative mb-8 overflow-hidden">
+                <canvas id="ecgCanvas" class="w-full h-full"></canvas>
+                ${!permissions.ecg_unlocked ? `<div class="absolute inset-0 locked-blur flex flex-col items-center justify-center text-center p-6"><i class="fas fa-lock text-4xl text-red-500 mb-4"></i><p class="text-xs font-bold uppercase">Dữ liệu ECG Chuyên sâu đã bị khóa (Decree 13)</p><button onclick="document.getElementById('mfa-modal').classList.remove('hidden')" class="mt-4 px-6 py-2 bg-sky-600 rounded-full text-[10px] font-bold uppercase shadow-lg">Mở khóa bằng Zalo OTP</button></div>` : ''}
+              </div>
+              <button onclick="alert('Đã xác thực chữ ký số VNPT-CA - Hồ sơ đã được đồng bộ chuẩn FHIR R4')" class="w-full bg-sky-600 hover:bg-sky-700 py-4 rounded-2xl font-black text-xs uppercase shadow-xl transition-all">Xác thực Ký số & Kê đơn BHYT</button>
+            </div>
+            <div class="col-span-4 flex flex-col space-y-6">
+              <div class="bg-slate-900 rounded-[3rem] flex-1 p-6 border border-white/5 flex flex-col shadow-2xl">
+                <h4 class="text-xs font-bold text-sky-400 uppercase italic mb-6">Virtual Consultation Chat</h4>
+                <div class="flex-1 space-y-4 text-[10px] overflow-y-auto scroll-custom pr-2 italic">
+                  <div class="text-sky-400">BS. Xã: "Em đã đẩy kết quả lên FHIR, nhờ Bác hội chẩn ca THA này."</div>
+                  <div class="text-slate-500 text-right">BS. Tuyến Tỉnh: "Đã nhận. Để tôi mở khóa ECG xem chi tiết."</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        if(permissions.ecg_unlocked) initEcg();
+      }
+
+      else if (activeView === 'migration') {
+        main.innerHTML = `
+          <div class="max-w-4xl mx-auto space-y-8">
+            <h2 class="text-2xl font-black italic border-l-4 border-sky-400 pl-4 uppercase">Chiến lược Chuyển đổi Dữ liệu (Legacy to Cloud)</h2>
+            <div class="grid grid-cols-2 gap-8">
+              <div class="glass p-8 rounded-[2.5rem] border border-sky-500/20">
+                <h4 class="text-sm font-bold text-sky-400 uppercase mb-4">Trình ánh xạ chuẩn FHIR (Mapper)</h4>
+                <div class="space-y-4 text-xs font-mono">
+                  <div class="bg-black/50 p-3 rounded-lg"><span class="text-slate-500 italic">Source:</span> Excel: 'Huyết áp'<br><span class="text-sky-400 italic">Target:</span> Observation.component[8480-6]</div>
+                  <div class="bg-black/50 p-3 rounded-lg"><span class="text-slate-500 italic">Source:</span> HIS: 'Bệnh lý'<br><span class="text-sky-400 italic">Target:</span> Condition.code[ICD-10]</div>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div class="p-6 bg-white/5 rounded-[2rem] border border-white/5">
+                  <p class="text-xs font-bold text-slate-200 uppercase mb-2">Trạng thái di dời</p>
+                  <div class="w-full bg-slate-800 h-2 rounded-full mb-2 overflow-hidden"><div class="bg-sky-500 h-full w-[75%]"></div></div>
+                  <p class="text-[10px] text-slate-500 italic">Đã đồng bộ 7,500/10,000 bản ghi lịch sử BHYT.</p>
+                </div>
+                <button onclick="alert('Đang quét làm sạch dữ liệu cũ...')" class="w-full py-4 bg-sky-600 rounded-2xl font-bold text-xs uppercase shadow-xl italic">Kích hoạt Chuyển đổi (Batch Migration)</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      else if (activeView === 'patient-app') {
+        main.innerHTML = `
+          <div class="grid grid-cols-2 gap-12 items-center">
+            <div class="phone-view shadow-2xl shadow-sky-500/10">
+              <div class="bg-sky-600 h-32 p-8 pt-12 text-white">
+                <p class="text-[9px] font-bold uppercase opacity-70">Sổ sức khỏe điện tử</p>
+                <h4 class="text-lg font-bold uppercase tracking-tight">Ông Trần Văn B</h4>
+              </div>
+              <div class="p-6 -mt-6 bg-slate-50 rounded-t-[2.5rem] space-y-4 h-full">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100"><p class="text-[8px] font-bold text-slate-400 uppercase">Huyết áp 24h qua</p><p class="text-2xl font-black text-slate-800 tracking-tighter">125/80 <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded ml-1">ỔN ĐỊNH</span></p></div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100"><p class="text-[8px] font-bold text-red-500 uppercase italic">Lịch thuốc: 20:00 tối</p><p class="text-xs font-bold mt-1">Metformin 500mg</p></div>
+                <div class="bg-slate-900 p-4 rounded-2xl text-white h-40"><canvas id="patientTrend"></canvas></div>
+              </div>
+            </div>
+            <div class="space-y-6">
+              <h3 class="text-3xl font-black uppercase text-sky-400 italic">V-Health Patient <br><span class="text-white">Compassionate App</span></h3>
+              <ul class="text-sm text-slate-400 space-y-4 leading-relaxed">
+                <li><b class="text-white">● Đồng hành tận tâm:</b> Hệ thống tự động phân tích xu hướng 12 tháng và gửi lời khuyên cá nhân hóa.</li>
+                <li><b class="text-white">● Nhắc nhở thông minh:</b> Tự động nhắc lịch khám, uống thuốc qua thông báo đẩy và Zalo.</li>
+                <li><b class="text-white">● Quyền lực dữ liệu:</b> Người dân sở hữu và quản lý hồ sơ FHIR cá nhân theo Nghị định 13.</li>
+              </ul>
+            </div>
+          </div>
+        `;
+        initPatientChart();
+      }
+    }
+
+    // Chart Initializers
+    function initDashboardCharts() {
+      new Chart(document.getElementById('scalingChart'), {
+        type: 'line',
+        data: { labels: ['08h', '09h', '10h', '11h', '12h'], datasets: [{ label: 'Containers', data: [40, 85, 142, 120, 60], borderColor: '#0ea5e9', fill: true, backgroundColor: 'rgba(14, 165, 233, 0.1)', tension: 0.4 }] },
+        options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { display: false } } }
+      });
+      new Chart(document.getElementById('liveStreamChart'), {
+        type: 'bar',
+        data: { labels: ['Latency', 'Loss', 'Jitter'], datasets: [{ data: [12, 1, 2], backgroundColor: '#22c55e' }] },
+        options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { display: false } } } }
+      });
+    }
+
+    function initRiskChart() {
+      new Chart(document.getElementById('riskRadar'), {
+        type: 'radar',
+        data: { labels: ['Hạ tầng', 'FHIR Security', 'Quyền truy cập', 'IoT Safety', 'Privacy'], datasets: [{ data: [20, 15, 65, 30, 10], borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.2)' }] },
+        options: { scales: { r: { display: false } }, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function initPatientChart() {
+      new Chart(document.getElementById('patientTrend'), {
+        type: 'line',
+        data: { labels: ['Th9', 'Th10', 'Th11', 'Th12'], datasets: [{ data: [145, 140, 132, 125], borderColor: '#38bdf8', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.1)' }] },
+        options: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+      });
+    }
+
+    function initEcg() {
+      const canvas = document.getElementById('ecgCanvas');
+      const ctx = canvas.getContext('2d');
+      let x = 0;
+      function animate() {
+        if (activeView !== 'clinical') return;
+        ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, 80); x += 2;
+        const y = 80 + (Math.random() > 0.9 ? -50 : (Math.random()-0.5)*5);
+        ctx.lineTo(x, y); ctx.stroke();
+        if (x > canvas.width) { x = 0; ctx.clearRect(0,0,canvas.width,canvas.height); }
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    function verifyMFA() {
+      const otp = document.getElementById('otp-input').value;
+      if (otp === "123456") { permissions.ecg_unlocked = true; document.getElementById('mfa-modal').classList.add('hidden'); render(); }
+      else { alert("❌ Sai OTP. Hành vi đã được báo cáo Zalo Giám đốc."); document.getElementById('violation-toast').classList.remove('hidden'); }
+    }
+
+    render();
+  </script>
+</body>
+</html>
